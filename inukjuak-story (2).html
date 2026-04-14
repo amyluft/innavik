@@ -1068,5 +1068,22 @@ html, body {
 
 
 
+
+<script>
+function sendHeight() {
+  var height = document.body.scrollHeight;
+  window.parent.postMessage({ frameHeight: height }, '*');
+}
+window.addEventListener('load', sendHeight);
+window.addEventListener('resize', sendHeight);
+// Also send periodically for a few seconds in case images load late
+var count = 0;
+var interval = setInterval(function() {
+  sendHeight();
+  count++;
+  if (count >= 10) clearInterval(interval);
+}, 500);
+</script>
+
 </body>
 </html>
