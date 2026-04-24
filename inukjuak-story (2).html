@@ -381,6 +381,17 @@ html, body {
   .pullquote-inner { padding-left: 1.5rem; }
   .pullquote-text { font-size: 1.2rem; }
 }
+
+.hero-byline {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--aurora-teal);
+  margin-top: 1.2rem;
+  opacity: 0;
+  animation: fadeUp 1s ease forwards 1.3s;
+}
 </style>
 </head>
 <body>
@@ -396,6 +407,7 @@ html, body {
     <p class="hero-eyebrow">Innavik Hydroelectric Project &middot; Inukjuak, Nunavik</p>
     <h1 class="hero-title">Power<em>in the North</em></h1>
     <p class="hero-sub">How an Inuit community left diesel behind &mdash; and what it takes to build anything this far north.</p>
+    <p class="hero-byline">An interactive data feature by Amy Luft, CTV News Montreal &mdash; in collaboration with Concordia University</p>
     <p class="hero-coords">58&deg;27&prime;N &middot; 78&deg;06&prime;W &middot; Hudson Bay Lowlands</p>
   </div>
   <div class="scroll-hint"><span>Scroll</span><div class="scroll-line"></div></div>
@@ -816,26 +828,23 @@ html, body {
   var INK = [574.0, 225.1];
 
   var VIEWS = {
-    overview: [0, 0, W, H],
-    montreal: [MTL[0]-120, MTL[1]-80, 240, 155],
-    inukjuak: [INK[0]-120, INK[1]-80, 240, 155],
-    distance: [Math.min(MTL[0],INK[0])-80, Math.min(MTL[1],INK[1])-50,
-               Math.abs(MTL[0]-INK[0])+160, Math.abs(MTL[1]-INK[1])+100]
+    overview:  [0, 0, W, H],
+    montreal:  [MTL[0]-120, MTL[1]-80, 240, 155],
+    inukjuak:  [INK[0]-120, INK[1]-80, 240, 155],
+    distance:  [Math.min(MTL[0],INK[0])-80, Math.min(MTL[1],INK[1])-50,
+                Math.abs(MTL[0]-INK[0])+160, Math.abs(MTL[1]-INK[1])+100]
   };
 
   var cur = VIEWS.overview.slice();
   var animId = null;
-  var initialized = false;
 
   function getSvg() { return document.getElementById('map-svg'); }
 
   function initMap() {
     var svg = getSvg();
-    if (!svg) return;
-    // Force the initial viewBox to be set correctly
-    svg.setAttribute('viewBox', VIEWS.overview.join(' '));
-    cur = VIEWS.overview.slice();
-    initialized = true;
+    if (!svg) return false;
+    svg.setAttribute('viewBox', cur.join(' '));
+    return true;
   }
 
   function easeIO(t) { return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
@@ -843,15 +852,14 @@ html, body {
   function animVB(key) {
     var svg = getSvg();
     if (!svg) return;
-    if (!initialized) initMap();
     if (animId) cancelAnimationFrame(animId);
     var from = cur.slice(), to = VIEWS[key];
     var start = performance.now(), dur = 750;
     function step(now) {
       var rawT = Math.min(1,(now-start)/dur), t = easeIO(rawT);
-      cur = from.map(function(v,i){return v+(to[i]-v)*t;});
-      svg.setAttribute('viewBox', cur.map(function(v){return v.toFixed(1);}).join(' '));
-      if (rawT<1) { animId=requestAnimationFrame(step); }
+      cur = from.map(function(v,i){ return v+(to[i]-v)*t; });
+      getSvg().setAttribute('viewBox', cur.map(function(v){ return v.toFixed(1); }).join(' '));
+      if (rawT < 1) { animId = requestAnimationFrame(step); }
     }
     animId = requestAnimationFrame(step);
   }
@@ -859,39 +867,33 @@ html, body {
   function showLine(show) {
     var dl = document.getElementById('distLine');
     var dt = document.getElementById('distTxt');
-    if (dl) dl.setAttribute('opacity', show?'1':'0');
-    if (dt) dt.setAttribute('opacity', show?'1':'0');
+    if (dl) dl.setAttribute('opacity', show ? '1' : '0');
+    if (dt) dt.setAttribute('opacity', show ? '1' : '0');
   }
 
   function setActive(id) {
-    document.querySelectorAll('.map-btn').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.map-btn').forEach(function(b) { b.classList.remove('active'); });
     var el = document.getElementById(id);
     if (el) el.classList.add('active');
   }
 
-  // Init on load and after a short delay to handle iframe timing
-  function tryInit() {
-    var svg = getSvg();
-    if (svg) {
-      initMap();
-    } else {
-      setTimeout(tryInit, 100);
+  // Use event delegation on document.body so it works regardless of iframe timing
+  document.addEventListener('click', function(e) {
+    var id = e.target.id || (e.target.closest ? (e.target.closest('.map-btn') || {}).id : null);
+    if (!id) { var p = e.target.parentElement; if (p) id = p.id; }
+    switch(id) {
+      case 'btnOverview': animVB('overview'); showLine(false); setActive('btnOverview'); break;
+      case 'btnZoomMtl':  animVB('montreal'); showLine(false); setActive('btnZoomMtl');  break;
+      case 'btnZoomInk':  animVB('inukjuak'); showLine(false); setActive('btnZoomInk');  break;
+      case 'btnDistance': animVB('distance'); showLine(true);  setActive('btnDistance'); break;
     }
-  }
+  });
 
-  if (document.readyState === 'complete') {
-    tryInit();
-  } else {
-    window.addEventListener('load', tryInit);
-  }
-  // Belt and suspenders: also try after 500ms and 1500ms
-  setTimeout(tryInit, 500);
-  setTimeout(tryInit, 1500);
-
-  document.getElementById('btnOverview').addEventListener('click',function(){animVB('overview');showLine(false);setActive('btnOverview');});
-  document.getElementById('btnZoomMtl').addEventListener('click',function(){animVB('montreal');showLine(false);setActive('btnZoomMtl');});
-  document.getElementById('btnZoomInk').addEventListener('click',function(){animVB('inukjuak');showLine(false);setActive('btnZoomInk');});
-  document.getElementById('btnDistance').addEventListener('click',function(){animVB('distance');showLine(true);setActive('btnDistance');});
+  // Init immediately and at intervals to handle iframe load timing
+  initMap();
+  setTimeout(initMap, 200);
+  setTimeout(initMap, 800);
+  setTimeout(initMap, 2000);
 })();
 
 // ── EMISSIONS LINE CHART + COUNTER ──
