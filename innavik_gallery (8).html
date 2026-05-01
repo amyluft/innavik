@@ -187,7 +187,6 @@ const photos = [
   { src: "https://www.ctvnews.ca/resizer/v2/JBPSUZHICJFWZHCP4U7FI3FVTM.jpg?auth=70e8993ffb5fbb0004cfe38cf75268eb1dd4ece4f4854f8a36c31c7504537947&width=1200", title: "ARENA participants", caption: "Arctic Remote Energy Networks Academy (ARENA) participants tour the Innavik Hydro site in Inukjuak, October 2024. (Photo by Lina Forero)" },
 ];
 let current = 0;
-let autoTimer = null;
 
 const slidesEl = document.getElementById('slides');
 const thumbsEl = document.getElementById('thumbs');
@@ -232,12 +231,6 @@ function go(i) {
   preload((current + 1) % photos.length);
   preload((current - 1 + photos.length) % photos.length);
   thumbs[current].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  resetAuto();
-}
-
-function resetAuto() {
-  clearInterval(autoTimer);
-  autoTimer = setInterval(() => go(current + 1), 6000);
 }
 
 document.getElementById('prev').addEventListener('click', () => go(current - 1));
